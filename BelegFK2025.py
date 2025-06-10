@@ -44,13 +44,13 @@ class Finanzkrise:
     def update(self):
         # Simulate the effects of the crisis
         self.zollsatz = min(self.zollsatz + self.zollsatz_steigung, self.zollsatz_max) # Tariffs werden jährlich erhöht, es gibt allerdings eine Obergrenze von 50%
-        price_increase_from_tariffs = self.zollsatz * (1.0 / self.produktpreis_index) 
-        price_increase_from_inflation = self.inflationsrate # assuming inflation is a rate
+        price_increase_from_tariffs = self.zollsatz * (1.0 / self.produktpreis_index) # hier wird angenommen, dass der Zollsatz direkt den Produktpreisindex beeinflusst
+        price_increase_from_inflation = self.inflationsrate # Inflation beeinflusst den Produktpreisindex direkt
         self.produktpreis_index *= (1 + price_increase_from_tariffs + price_increase_from_inflation)
 
         self.einkommen *= (1 - self.einkommensPreisSensitivitaet * (self.produktpreis_index / 100 - 1) - self.einkommensBeschaeftigungsSensitivitaet * (1 - self.arbeiter / self.initialeArbeiter))
         nachfrage_reduktionsfaktor = 1.0 - (self.produktionsPreisSensitivitaet * (self.produktpreis_index / 100)) - (self.produktionsEinkommensSensitivitaet * (1 - self.einkommen / self.initialesEinkommen))
-        self.nachfrage *= max(self.nachfrageThreshold, nachfrage_reduktionsfaktor) # Ensure demand doesn't go below almost zero instantly
+        self.nachfrage *= max(self.nachfrageThreshold, nachfrage_reduktionsfaktor) 
         #self.nachfrage *= 0.95  # Demand decreases by 5%
         self.produktion *= (1 - self.produktionsNachfrageSensitivitaet * (1 - self.nachfrage / self.initialeNachfrage))
         self.arbeiter *= (1 - self.arbeiterProduktionsSensitivitaet * (1 - self.produktion / self.initialeProduktion)) # wenn die Produktion sinkt, sinkt auch die Nachfrage nach Arbeitskräften
