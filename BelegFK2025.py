@@ -15,24 +15,24 @@ import random
 class Finanzkrise:
     def __init__(self):
         #Parameter
-        self.zollsatz = 0.25  # initial tariff rate -> 25%
-        self.zollsatz_steigung = 0.05  # tariff rate increase per year -> 5%
-        self.zollsatz_max = 0.50  # maximum tariff rate -> 50%
-        self.einwohneranzahl = 330000000  # US population
-        self.initialesEinkommen = 50000  # average income in USD
-        self.arbeitslosenrate = 0.05  # initial unemployment rate -> 5%
-        self.inflationsrate = 0.02  # initial inflation rate -> 2%
-        self.produktpreis_index = 100  # initial product price index
-        self.initialeNachfrage = 1000  # initial demand for goods
-        self.initialeProduktion = 1000  # initial production of goods
-        self.initialeArbeiter = 150_000_000  # initial employment in millions
+        self.zollsatz = 0.25  # initiale Tariff Rate -> 25%
+        self.zollsatz_steigung = 0.05  # Tariffs steigen um 5% pro Jahr
+        self.zollsatz_max = 0.50  # maximum Tariff Rate -> 50%
+        self.einwohneranzahl = 330000000  # USA Einwohneranzahl
+        self.initialesEinkommen = 50000  # Durchschnittseinkommen USA in USD
+        self.arbeitslosenrate = 0.05  # initiale Arbeitslosigkeitsrate -> 5%
+        self.inflationsrate = 0.02  # initiale Inflationsrate -> 2%
+        self.produktpreis_index = 100  # initialer Produktpreisindex -> 100
+        self.initialeNachfrage = 1000  # initiale Nachfrage nach Waren
+        self.initialeProduktion = 1000  # initiale Produktion von Waren
+        self.initialeArbeiter = 150_000_000  # initiale Arbeiteranzahl in den USA
         self.einkommen = self.initialesEinkommen
         self.nachfrage = self.initialeNachfrage
         self.arbeiter = self.initialeArbeiter
         self.produktion = self.initialeProduktion
         #Koeffizienten
-        self.einkommensPreisSensitivitaet = 0.005  # sensitivity of income to price changes
-        self.einkommensBeschaeftigungsSensitivitaet = 0.001  # sensitivity of income to employment changes
+        self.einkommensPreisSensitivitaet = 0.005  # Sensitivität von Einkommen gegenüber Preisänderungen des allgemeinen Produktpreisindex
+        self.einkommensBeschaeftigungsSensitivitaet = 0.001  # Sensitivität von Einkommen gegenüber Beschäftigungsänderungen
         self.nachfrageThreshold = 0.01  # sensitivity of demand to price changes
         self.produktionsPreisSensitivitaet = 0.01  # sensitivity of production to price changes
         self.produktionsEinkommensSensitivitaet = 0.005  # sensitivity of production to income changes
@@ -44,17 +44,16 @@ class Finanzkrise:
     def update(self):
         # Simulate the effects of the crisis
         self.zollsatz = min(self.zollsatz + self.zollsatz_steigung, self.zollsatz_max) # Tariffs werden jährlich erhöht, es gibt allerdings eine Obergrenze von 50%
-        price_increase_from_tariffs = self.zollsatz * (1.0 / self.produktpreis_index) # hier wird angenommen, dass der Zollsatz direkt den Produktpreisindex beeinflusst
-        price_increase_from_inflation = self.inflationsrate # Inflation beeinflusst den Produktpreisindex direkt
-        self.produktpreis_index *= (1 + price_increase_from_tariffs + price_increase_from_inflation)
+        price_increase_from_tariffs = self.zollsatz * (1.0 / self.produktpreis_index) # Zölle erhöhen die Preise der importierten Waren, was sich auf den Produktpreisindex auswirkt
+        price_increase_from_inflation = self.inflationsrate 
+        self.produktpreis_index *= (1 + price_increase_from_tariffs + price_increase_from_inflation) # Produktpreise steigen durch Zölle und Inflation
 
-        self.einkommen *= (1 - self.einkommensPreisSensitivitaet * (self.produktpreis_index / 100 - 1) - self.einkommensBeschaeftigungsSensitivitaet * (1 - self.arbeiter / self.initialeArbeiter))
-        nachfrage_reduktionsfaktor = 1.0 - (self.produktionsPreisSensitivitaet * (self.produktpreis_index / 100)) - (self.produktionsEinkommensSensitivitaet * (1 - self.einkommen / self.initialesEinkommen))
-        self.nachfrage *= max(self.nachfrageThreshold, nachfrage_reduktionsfaktor) 
-        #self.nachfrage *= 0.95  # Demand decreases by 5%
-        self.produktion *= (1 - self.produktionsNachfrageSensitivitaet * (1 - self.nachfrage / self.initialeNachfrage))
+        self.einkommen *= (1 - self.einkommensPreisSensitivitaet * (self.produktpreis_index / 100 - 1) - self.einkommensBeschaeftigungsSensitivitaet * (1 - self.arbeiter / self.initialeArbeiter)) # Einkommen sinkt durch steigende Preise und sinkende Beschäftigung
+        nachfrage_reduktionsfaktor = 1.0 - (self.produktionsPreisSensitivitaet * (self.produktpreis_index / 100)) - (self.produktionsEinkommensSensitivitaet * (1 - self.einkommen / self.initialesEinkommen)) # Nachfrage sinkt durch steigende Preise und sinkendes Einkommen
+        self.nachfrage *= max(self.nachfrageThreshold, nachfrage_reduktionsfaktor) # self.nachfrage kann nicht unter 1% der initialen Nachfrage fallen, um eine totale Marktkollaps zu vermeiden
+        self.produktion *= (1 - self.produktionsNachfrageSensitivitaet * (1 - self.nachfrage / self.initialeNachfrage)) # wenn die Nachfrage sinkt, sinkt auch die Produktion
         self.arbeiter *= (1 - self.arbeiterProduktionsSensitivitaet * (1 - self.produktion / self.initialeProduktion)) # wenn die Produktion sinkt, sinkt auch die Nachfrage nach Arbeitskräften
-        self.inflationsrate *= random.uniform(1.01, 1.06)  
+        self.inflationsrate *= random.uniform(1.01, 1.06)  # Inflation liegt zufällig zwischen 1% und 6%
 
     def simulate(self, years=10):
         self.produktpreis_index *= (1 + self.zollsatz)
