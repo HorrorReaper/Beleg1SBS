@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.integrate import odeint
 import random
 # Zölle in der USA steigen auf ausländische Produkte -> Produktpreise steigen
 # US Einwohner müssen mehr Geld für Waren aus dem Ausland ausgeben, es wird weniger gekauft, Armut steigt
@@ -17,23 +16,25 @@ class Finanzkrise:
         #Parameter
         self.zollsatz = 0.25  # initiale Tariff Rate -> 25%
         self.zollsatz_steigung = 0.05  # Tariffs steigen um 5% pro Jahr
-        self.zollsatz_max = 0.50  # maximum Tariff Rate -> 50%
+        self.zollsatz_max = 0.50  # maximale Tariff Rate -> 50%
         self.einwohneranzahl = 330000000  # USA Einwohneranzahl
         self.initialesEinkommen = 50000  # Durchschnittseinkommen USA in USD
-        self.arbeitslosenrate = 0.05  # initiale Arbeitslosigkeitsrate -> 5%
+        self.einkommen = self.initialesEinkommen
         self.inflationsrate = 0.02  # initiale Inflationsrate -> 2%
         self.produktpreis_index = 100  # initialer Produktpreisindex -> 100
         self.initialeNachfrage = 1000  # initiale Nachfrage nach Waren
-        self.initialeProduktion = 1000  # initiale Produktion von Waren
-        self.initialeArbeiter = 150_000_000  # initiale Arbeiteranzahl in den USA
-        self.einkommen = self.initialesEinkommen
+        self.nachfrageThreshold = 0.01  # Mindestnachfrage, um einen totalen Marktkollaps zu vermeiden (1% der initialen Nachfrage)
         self.nachfrage = self.initialeNachfrage
-        self.arbeiter = self.initialeArbeiter
+        self.initialeProduktion = 1000  # initiale Produktion von Waren
         self.produktion = self.initialeProduktion
+        self.initialeArbeiter = 150_000_000  # initiale Arbeiteranzahl in den USA
+        
+        self.arbeiter = self.initialeArbeiter
+        
         #Koeffizienten
         self.einkommensPreisSensitivitaet = 0.005  # Sensitivität von Einkommen gegenüber Preisänderungen des allgemeinen Produktpreisindex
         self.einkommensBeschaeftigungsSensitivitaet = 0.001  # Sensitivität von Einkommen gegenüber Beschäftigungsänderungen
-        self.nachfrageThreshold = 0.01  # sensitivity of demand to price changes
+        
         self.produktionsPreisSensitivitaet = 0.01  # sensitivity of production to price changes
         self.produktionsEinkommensSensitivitaet = 0.005  # sensitivity of production to income changes
         self.produktionsNachfrageSensitivitaet = 0.05  # sensitivity of production to demand changes
@@ -48,10 +49,8 @@ class Finanzkrise:
         price_increase_from_tariffs = self.zollsatz * (1.0 / self.produktpreis_index) # Zölle erhöhen die Preise der importierten Waren, was sich auf den Produktpreisindex auswirkt
         price_increase_from_inflation = self.inflationsrate 
         self.produktpreis_index *= (1 + price_increase_from_tariffs + price_increase_from_inflation) # Produktpreise steigen durch Zölle und Inflation
-
         self.einkommen *= (1 - self.einkommensPreisSensitivitaet * (self.produktpreis_index / 100 - 1) - self.einkommensBeschaeftigungsSensitivitaet * (1 - self.arbeiter / self.initialeArbeiter)) # Einkommen sinkt durch steigende Preise und sinkende Beschäftigung
-        nachfrage_reduktionsfaktor = 1.0 - (self.produktionsPreisSensitivitaet * (self.produktpreis_index / 100)) - (self.produktionsEinkommensSensitivitaet * (1 - self.einkommen / self.initialesEinkommen)) # Nachfrage sinkt durch steigende Preise und sinkendes Einkommen
-        self.nachfrage *= max(self.nachfrageThreshold, nachfrage_reduktionsfaktor) # self.nachfrage kann nicht unter 1% der initialen Nachfrage fallen, um eine totale Marktkollaps zu vermeiden
+        self.nachfrage *= max(self.nachfrageThreshold, 1.0 - (self.produktionsPreisSensitivitaet * (self.produktpreis_index / 100)) - (self.produktionsEinkommensSensitivitaet * (1 - self.einkommen / self.initialesEinkommen))) # self.nachfrage kann nicht unter 1% der initialen Nachfrage fallen, um eine totale Marktkollaps zu vermeiden
         self.produktion *= (1 - self.produktionsNachfrageSensitivitaet * (1 - self.nachfrage / self.initialeNachfrage)) # wenn die Nachfrage sinkt, sinkt auch die Produktion
         self.arbeiter *= (1 - self.arbeiterProduktionsSensitivitaet * (1 - self.produktion / self.initialeProduktion)) # wenn die Produktion sinkt, sinkt auch die Nachfrage nach Arbeitskräften
         self.inflationsrate += 1
