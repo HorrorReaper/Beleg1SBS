@@ -9,7 +9,12 @@ import random
 # mit sinkender Produktion sinkt die Nachfrage nach Arbeitskräften, es werden weniger Arbeitskräfte eingestellt
 # mit sinkender Nachfrage nach Arbeitskräften sinkt die Beschäftigung, es gibt mehr Arbeitslose und Armut steigt weiter
 
-
+#Ich gehe davon aus, dass ein Wirtschaftscrash entstehen würde, wenn mind. 2 der 5 folgenden Kriterien erfüllt sind:
+# Nachfrage	unter 70 % des Startwertes
+# Produktion	unter 60–70 % des Startwertes
+# Beschäftigung	unter 80 % des Startwertes
+# Einkommen	unter 75 % des Startwertes
+# Inflationsrate	über 8–10 %
 
 
 class Finanzkrise:
