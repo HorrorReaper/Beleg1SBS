@@ -44,6 +44,7 @@ class Finanzkrise:
     def update(self):
         # Simulate the effects of the crisis
         self.zollsatz = min(self.zollsatz + self.zollsatz_steigung, self.zollsatz_max) # Tariffs werden jährlich erhöht, es gibt allerdings eine Obergrenze von 50%
+        import_anteil = 0.5 # 50% 
         price_increase_from_tariffs = self.zollsatz * (1.0 / self.produktpreis_index) # Zölle erhöhen die Preise der importierten Waren, was sich auf den Produktpreisindex auswirkt
         price_increase_from_inflation = self.inflationsrate 
         self.produktpreis_index *= (1 + price_increase_from_tariffs + price_increase_from_inflation) # Produktpreise steigen durch Zölle und Inflation
@@ -53,7 +54,9 @@ class Finanzkrise:
         self.nachfrage *= max(self.nachfrageThreshold, nachfrage_reduktionsfaktor) # self.nachfrage kann nicht unter 1% der initialen Nachfrage fallen, um eine totale Marktkollaps zu vermeiden
         self.produktion *= (1 - self.produktionsNachfrageSensitivitaet * (1 - self.nachfrage / self.initialeNachfrage)) # wenn die Nachfrage sinkt, sinkt auch die Produktion
         self.arbeiter *= (1 - self.arbeiterProduktionsSensitivitaet * (1 - self.produktion / self.initialeProduktion)) # wenn die Produktion sinkt, sinkt auch die Nachfrage nach Arbeitskräften
+        self.inflationsrate += 1
         self.inflationsrate *= random.uniform(1.01, 1.06)  # Inflation liegt zufällig zwischen 1% und 6%
+        self.inflationsrate -= 1
 
     def simulate(self, years=10):
         self.produktpreis_index *= (1 + self.zollsatz)
@@ -63,7 +66,8 @@ class Finanzkrise:
             history.append((self.einwohneranzahl, self.nachfrage, self.produktion, self.arbeiter, self.zollsatz, self.einkommen, self.inflationsrate, self.produktpreis_index))
         return history
     def plot_results(self, history):
-        years = list(range(len(history)))
+        startjahr = 2025
+        years = list(range(startjahr, startjahr + len(history)))
         population, demand, production, employment, zollsatz, einkommen, inflationsrate, produktpreis_index = zip(*history)
 
         plt.figure(figsize=(12, 16))
@@ -85,7 +89,7 @@ class Finanzkrise:
         plt.plot(years, production, label='Produktion', color='green')
         plt.title('Produktion über Zeitraum')
         plt.xlabel('Jahre')
-        plt.ylabel('Produktion')
+        plt.ylabel('Produktion (Basis 1000)')
         plt.grid()
 
         plt.subplot(2, 2, 4)
@@ -103,15 +107,15 @@ class Finanzkrise:
 
         plt.subplot(2, 2, 1)
         plt.plot(years, zollsatz, label='Zoll Rate', color='purple')
-        plt.title('Zoll Rate über Zeitraum')
+        plt.title('Zollrate über Zeitraum')
         plt.xlabel('Jahre')
-        plt.ylabel('Zoll Rate')
+        plt.ylabel('Zollrate (%)')
         plt.grid()
         plt.subplot(2, 2, 2)
         plt.plot(years, produktpreis_index, label='Produkt Preis Index', color='brown')
         plt.title('Produkt Preis Index über Zeitraum')
         plt.xlabel('Years')
-        plt.ylabel('Produkt Preis Index')
+        plt.ylabel('Produkt Preis Index(Basis 100)')
         plt.grid()
         plt.subplot(2, 2, 3)
         plt.plot(years, einkommen, label='Einkommen', color='cyan')
@@ -121,9 +125,9 @@ class Finanzkrise:
         plt.grid()
         plt.subplot(2, 2, 4)
         plt.plot(years, inflationsrate, label='Inflationsrate', color='magenta')
-        plt.title('Inflationsrate über Zeitraum')
+        plt.title('Inflationsrate über Zeitraum kumuliert')
         plt.xlabel('Jahre')
-        plt.ylabel('Inflationsrate')
+        plt.ylabel('Inflationsrate(%)')
         plt.grid()
         plt.suptitle('Wirtschaftsindikatoren über Zeitraum')
         plt.legend()
