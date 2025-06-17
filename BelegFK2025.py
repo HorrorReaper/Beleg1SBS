@@ -4,6 +4,7 @@ import random
 # Zölle in der USA steigen auf ausländische Produkte -> Produktpreise steigen
 # US Einwohner müssen mehr Geld für Waren aus dem Ausland ausgeben, es wird weniger gekauft, Armut steigt
 # mit steigender Armut sinkt die Nachfrage nach Waren im Allgemeinen
+# ebenfalls sinkt mit höheren Produktpreisen auch der internationale Absatz der USA 
 # mit sinkender Nachfrage sinkt die Produktion, es werden weniger Waren hergestellt
 # mit sinkender Produktion sinkt die Nachfrage nach Arbeitskräften, es werden weniger Arbeitskräfte eingestellt
 # mit sinkender Nachfrage nach Arbeitskräften sinkt die Beschäftigung, es gibt mehr Arbeitslose und Armut steigt weiter
@@ -28,6 +29,7 @@ class Finanzkrise:
         self.initialeProduktion = 1000  # initiale Produktion von Waren
         self.produktion = self.initialeProduktion
         self.initialeArbeiter = 150_000_000  # initiale Arbeiteranzahl in den USA
+        self.absatz = 100 #Absatz mit initialwert 100
         
         self.arbeiter = self.initialeArbeiter
         
@@ -39,6 +41,7 @@ class Finanzkrise:
         self.produktionsEinkommensSensitivitaet = 0.005  # sensitivity of production to income changes
         self.produktionsNachfrageSensitivitaet = 0.05  # sensitivity of production to demand changes
         self.arbeiterProduktionsSensitivitaet = 0.005  # sensitivity of employment to production changes
+        self.absatzPreisSensitivitaet = 0.01  # sensitivity of sales to price changes
 
 
 
@@ -53,24 +56,25 @@ class Finanzkrise:
         self.produktion *= (1 - self.produktionsNachfrageSensitivitaet * (1 - self.nachfrage / self.initialeNachfrage)) # wenn die Nachfrage sinkt, sinkt auch die Produktion
         self.arbeiter *= (1 - self.arbeiterProduktionsSensitivitaet * (1 - self.produktion / self.initialeProduktion)) # wenn die Produktion sinkt, sinkt auch die Nachfrage nach Arbeitskräften
         self.inflationsrate *= random.uniform(1.01, 1.06)  # Inflation liegt zufällig zwischen 1% und 6%
+        self.absatz *= (1 - self.absatzPreisSensitivitaet * (self.produktpreis_index / 100 - 1))  # Absatz sinkt durch steigende Preise
 
     def simulate(self, years=10):
         self.produktpreis_index *= (1 + self.zollsatz)
         history = []
         for year in range(years):
             self.update()
-            history.append((self.einwohneranzahl, self.nachfrage, self.produktion, self.arbeiter, self.zollsatz, self.einkommen, self.inflationsrate, self.produktpreis_index))
+            history.append((self.einwohneranzahl, self.nachfrage, self.produktion, self.arbeiter, self.zollsatz, self.einkommen, self.inflationsrate, self.produktpreis_index, self.absatz))
         return history
     def plot_results(self, history):
         years = list(range(len(history)))
-        population, demand, production, employment, zollsatz, einkommen, inflationsrate, produktpreis_index = zip(*history)
+        population, demand, production, employment, zollsatz, einkommen, inflationsrate, produktpreis_index, absatz = zip(*history)
 
         plt.figure(figsize=(12, 16))
         plt.subplot(2, 2, 1)
-        plt.plot(years, population, label='Einwohner')
-        plt.title('Einwohner über Zeitraum')
+        plt.plot(years, absatz, label='Absatz')
+        plt.title('Absatz über Zeitraum')
         plt.xlabel('Jahre')
-        plt.ylabel('Einwohner')
+        plt.ylabel('Absatz')
         plt.grid()
 
         plt.subplot(2, 2, 2)
@@ -109,7 +113,7 @@ class Finanzkrise:
         plt.subplot(2, 2, 2)
         plt.plot(years, produktpreis_index, label='Produkt Preis Index', color='brown')
         plt.title('Produkt Preis Index über Zeitraum')
-        plt.xlabel('Years')
+        plt.xlabel('Jahre')
         plt.ylabel('Produkt Preis Index')
         plt.grid()
         plt.subplot(2, 2, 3)
