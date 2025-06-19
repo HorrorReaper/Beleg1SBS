@@ -16,6 +16,8 @@ import random
 # Einkommen	unter 75 % des Startwertes
 # Inflationsrate	über 8–10 %
 
+# Reale Kennzahlen:
+
 
 class Finanzkrise:
     def __init__(self):
@@ -34,7 +36,8 @@ class Finanzkrise:
         self.initialeProduktion = 1000  # initiale Produktion von Waren
         self.produktion = self.initialeProduktion
         self.initialeArbeiter = 150_000_000  # initiale Arbeiteranzahl in den USA
-        self.absatz = 100 #Absatz mit initialwert 100
+        self.initialerAbsatz = 100
+        self.absatz = self.initialerAbsatz #Absatz mit initialwert 100
         
         self.arbeiter = self.initialeArbeiter
         
@@ -65,18 +68,37 @@ class Finanzkrise:
         self.inflationsrate *= random.uniform(1.01, 1.06)  # Inflation liegt zufällig zwischen 1% und 6%
         self.absatz *= (1 - self.absatzPreisSensitivitaet * (self.produktpreis_index / 100 - 1))  # Absatz sinkt durch steigende Preise
         self.inflationsrate -= 1
+        
 
     def simulate(self, years=10):
         self.produktpreis_index *= (1 + self.zollsatz)
         history = []
+        crash_jahr = None  # Wann tritt der Crash ein?
+        i = 0
         for year in range(years):
             self.update()
-            history.append((self.einwohneranzahl, self.nachfrage, self.produktion, self.arbeiter, self.zollsatz, self.einkommen, self.inflationsrate, self.produktpreis_index, self.absatz))
-        return history
+            if (self.nachfrage < 0.7 * self.initialeNachfrage and self.produktion < 0.7 * self.initialeProduktion and self.einkommen < 0.75 * self.initialesEinkommen and self.arbeiter < 0.85 * self.initialeArbeiter):
+                if crash_jahr is None:
+                    crash_jahr = year
+            if (self.nachfrage < 0.7 * self.initialeNachfrage):
+                i += 1
+            if (self.produktion < 0.7 * self.initialeProduktion):
+                i += 1
+            if (self.arbeiter < 0.85 * self.initialeArbeiter):
+                i += 1
+            if (self.einkommen < 0.75 * self.initialesEinkommen):
+                i += 1
+            print(f"Jahr {2025 + year}: Nachfrage={self.nachfrage:.2f}, Produktion={self.produktion:.2f}, Arbeiter={self.arbeiter:.2f}, Zollsatz={self.zollsatz * 100:.2f}%, Einkommen={self.einkommen:.2f}, Inflationsrate={self.inflationsrate:.2f}%, Produktpreis Index={self.produktpreis_index:.2f}, Absatz={self.absatz:.2f}")
+            print(f"Vergleich: Nachfrage: {self.nachfrage / self.initialeNachfrage * 100:.2f}%, Produktion: {self.produktion / self.initialeProduktion * 100:.2f}%, Beschäftigung: {self.arbeiter / self.initialeArbeiter * 100:.2f}%, Einkommen: {self.einkommen / self.initialesEinkommen * 100:.2f}%, Inflationsrate: {self.inflationsrate:.2f}%")
+            if i >= 2:  # Wenn mindestens 2 der 5 Kriterien erfüllt sind, wird ein Crash angenommen
+                if crash_jahr is None:
+                    crash_jahr = year
+            history.append(( self.nachfrage, self.produktion, self.arbeiter, self.zollsatz, self.einkommen, self.inflationsrate, self.produktpreis_index, self.absatz))
+        return history, crash_jahr
     def plot_results(self, history):
         startjahr = 2025
         years = list(range(startjahr, startjahr + len(history)))
-        population, demand, production, employment, zollsatz, einkommen, inflationsrate, produktpreis_index, absatz = zip(*history)
+        demand, production, employment, zollsatz, einkommen, inflationsrate, produktpreis_index, absatz = zip(*history)
 
         plt.figure(figsize=(12, 16))
         plt.subplot(2, 2, 1)
@@ -147,6 +169,10 @@ class Finanzkrise:
 # Example usage
 if __name__ == "__main__":
     crisis = Finanzkrise()
-    history = crisis.simulate(years=10)
-    crisis.plot_results(history)      
+    history, crash_jahr = crisis.simulate(years=10)
+    crisis.plot_results(history)     
+    if crash_jahr is not None:
+        print(f"Wirtschaftscrash erkannt im Jahr {2025 + crash_jahr}!")
+    else:
+        print("Kein wirtschaftlicher Crash in den nächsten 10 Jahren.") 
         
