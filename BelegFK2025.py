@@ -9,33 +9,44 @@ import random
 # mit sinkender Produktion sinkt die Nachfrage nach Arbeitskräften, es werden weniger Arbeitskräfte eingestellt
 # mit sinkender Nachfrage nach Arbeitskräften sinkt die Beschäftigung, es gibt mehr Arbeitslose und Armut steigt weiter
 
-#Ich gehe davon aus, dass ein Wirtschaftscrash entstehen würde, wenn mind. 2 der 5 folgenden Kriterien erfüllt sind:
+#Ich gehe davon aus, dass ein Wirtschaftscrash entstehen würde, wenn mind. 2 der 6 folgenden Kriterien erfüllt sind:
 # Nachfrage	unter 70 % des Startwertes
 # Produktion	unter 60–70 % des Startwertes
 # Beschäftigung	unter 80 % des Startwertes
 # Einkommen	unter 75 % des Startwertes
 # Inflationsrate	über 8–10 %
-
+# Absatz fällt unter 70% des Startwertes
+# Diese Kriterien sind natürlich willkürlich gewählt, aber sie sollten eine realistische Annäherung an die Wirtschaftslage darstellen.
 # Reale Kennzahlen:
+# 2025: 
+# durchschnittlicher Haushalt verliert $3800
+# Verlust von 142000 Arbeitsplätzen
+# Konsumentenpreise steigen um 2,3% durch Zölle alleine
+# Inflationsrate ist bei 2,4%
+# Arbeitslosigkeit ist bei 4%, bis Q4 2025 wird sie auf 4,3% steigen
+# Einkommen ist seit Anfang 2025 um 2,5% gestiegen
+# Nachfrage und Absatz sind jeweils um 0,9% gefallen
+# Produktion ist um 0,4% gefallen seit 2024
+
 
 
 class Finanzkrise:
     def __init__(self):
         #Parameter
-        self.zollsatz = 0.25  # initiale Tariff Rate -> 25%
+        self.zollsatz = 0.225  # initiale Tariff Rate -> 25%
         self.zollsatz_steigung = 0.05  # Tariffs steigen um 5% pro Jahr
         self.zollsatz_max = 0.50  # maximale Tariff Rate -> 50%
         self.einwohneranzahl = 330000000  # USA Einwohneranzahl
         self.initialesEinkommen = 50000  # Durchschnittseinkommen USA in USD
         self.einkommen = self.initialesEinkommen
-        self.inflationsrate = 0.02  # initiale Inflationsrate -> 2%
+        self.inflationsrate = 0.024  # initiale Inflationsrate -> 2,4%
         self.produktpreis_index = 100  # initialer Produktpreisindex -> 100
         self.initialeNachfrage = 1000  # initiale Nachfrage nach Waren
         self.nachfrageThreshold = 0.01  # Mindestnachfrage, um einen totalen Marktkollaps zu vermeiden (1% der initialen Nachfrage)
         self.nachfrage = self.initialeNachfrage
         self.initialeProduktion = 1000  # initiale Produktion von Waren
         self.produktion = self.initialeProduktion
-        self.initialeArbeiter = 150_000_000  # initiale Arbeiteranzahl in den USA
+        self.initialeArbeiter = 150000000  # initiale Arbeiteranzahl in den USA
         self.initialerAbsatz = 100
         self.absatz = self.initialerAbsatz #Absatz mit initialwert 100
         
@@ -88,9 +99,11 @@ class Finanzkrise:
                 i += 1
             if (self.einkommen < 0.75 * self.initialesEinkommen):
                 i += 1
+            if(self.absatz < 0.7 * self.initialerAbsatz):
+                i += 1
             print(f"Jahr {2025 + year}: Nachfrage={self.nachfrage:.2f}, Produktion={self.produktion:.2f}, Arbeiter={self.arbeiter:.2f}, Zollsatz={self.zollsatz * 100:.2f}%, Einkommen={self.einkommen:.2f}, Inflationsrate={self.inflationsrate:.2f}%, Produktpreis Index={self.produktpreis_index:.2f}, Absatz={self.absatz:.2f}")
             print(f"Vergleich: Nachfrage: {self.nachfrage / self.initialeNachfrage * 100:.2f}%, Produktion: {self.produktion / self.initialeProduktion * 100:.2f}%, Beschäftigung: {self.arbeiter / self.initialeArbeiter * 100:.2f}%, Einkommen: {self.einkommen / self.initialesEinkommen * 100:.2f}%, Inflationsrate: {self.inflationsrate:.2f}%")
-            if i >= 2:  # Wenn mindestens 2 der 5 Kriterien erfüllt sind, wird ein Crash angenommen
+            if i >= 2:  # Wenn mindestens 2 der 6 Kriterien erfüllt sind, wird ein Crash angenommen
                 if crash_jahr is None:
                     crash_jahr = year
             history.append(( self.nachfrage, self.produktion, self.arbeiter, self.zollsatz, self.einkommen, self.inflationsrate, self.produktpreis_index, self.absatz))
