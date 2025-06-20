@@ -9,12 +9,11 @@ import random
 # mit sinkender Produktion sinkt die Nachfrage nach Arbeitskräften, es werden weniger Arbeitskräfte eingestellt
 # mit sinkender Nachfrage nach Arbeitskräften sinkt die Beschäftigung, es gibt mehr Arbeitslose und Armut steigt weiter
 
-#Ich gehe davon aus, dass ein Wirtschaftscrash entstehen würde, wenn mind. 2 der 6 folgenden Kriterien erfüllt sind:
+#Ich gehe davon aus, dass ein Wirtschaftscrash entstehen würde, wenn mind. 2 der 5 folgenden Kriterien erfüllt sind:
 # Nachfrage	unter 70 % des Startwertes
 # Produktion	unter 60–70 % des Startwertes
 # Beschäftigung	unter 80 % des Startwertes
 # Einkommen	unter 75 % des Startwertes
-# Inflationsrate	über 8–10 %
 # Absatz fällt unter 70% des Startwertes
 # Diese Kriterien sind natürlich willkürlich gewählt, aber sie sollten eine realistische Annäherung an die Wirtschaftslage darstellen.
 # Reale Kennzahlen:
@@ -64,9 +63,28 @@ class Finanzkrise:
         self.arbeiterProduktionsSensitivitaet = 0.17  # sensitivity of employment to production changes
         self.absatzPreisSensitivitaet = 0.032  # sensitivity of sales to price changes
 
+        # Crash Thresholds
+        self.crash_nachfrage_threshold = 0.9 * self.initialeNachfrage  # Nachfrage unter 70% des Startwertes
+        self.crash_produktions_threshold = 0.9 * self.initialeProduktion  # Produktion unter 60% des Startwertes
+        self.crash_beschaeftigung_threshold = 0.8 * self.initialeArbeiter  # Beschäftigung unter 80% des Startwertes
+        self.crash_einkommen_threshold = 0.75 * self.initialesEinkommen  # Einkommen unter 75% des Startwertes
+        self.crash_absatz_threshold = 0.7 * self.initialerAbsatz  # Absatz unter 70% des Startwertes 
 
 
-    def update(self):
+
+    def update(self,year):
+        if year > 1:
+            self.einkommensPreisSensitivitaet = 0.05  
+            self.einkommensBeschaeftigungsSensitivitaet = 0.008  
+
+            self.nachfragePreisSensitivitaet = 0.02  
+            self.nachfrageEinkommensSensitivitaet = 0.03  
+
+            self.produktionsNachfrageSensitivitaet = 0.4  
+            self.arbeiterProduktionsSensitivitaet = 0.08  
+
+            self.absatzPreisSensitivitaet = 0.02  
+
         # Simulate the effects of the crisis
         self.zollsatz = min(self.zollsatz + self.zollsatz_steigung, self.zollsatz_max) # Tariffs werden jährlich erhöht, es gibt allerdings eine Obergrenze von 50%
         if self.zollsatz < self.zollsatz_max:  # Wenn der Zollsatz unter dem Maximum liegt, wird der Produktpreisindex erhöht
@@ -90,43 +108,58 @@ class Finanzkrise:
         history = []
         crash_jahr = None  # Wann tritt der Crash ein?
         i = 0
-        history.append(( self.nachfrage, self.produktion, self.arbeiter, self.zollsatz, self.einkommen, self.inflationsrate, self.produktpreis_index, self.absatz))
+        boolean_array = [False] * 5  # Array, um die Erfüllung der Kriterien zu verfolgen
+        history.append(( self.nachfrage, self.produktion, self.arbeiter, self.zollsatz, self.einkommen, self.inflationsrate, self.produktpreis_index, self.absatz, boolean_array))
 
         for year in range(years):
-            self.update()
-            if (self.nachfrage < 0.7 * self.initialeNachfrage):
+            self.update(year)
+            if (self.nachfrage < self.crash_nachfrage_threshold):
                 i += 1
-            if (self.produktion < 0.7 * self.initialeProduktion):
+                boolean_array[0] = True
+            if (self.produktion < self.crash_produktions_threshold):
                 i += 1
-            if (self.arbeiter < 0.85 * self.initialeArbeiter):
+                boolean_array[1] = True
+            if (self.arbeiter < self.crash_beschaeftigung_threshold):
                 i += 1
-            if (self.einkommen < 0.75 * self.initialesEinkommen):
+                boolean_array[2] = True
+            if (self.einkommen < self.crash_einkommen_threshold):
                 i += 1
-            if(self.absatz < 0.7 * self.initialerAbsatz):
+                boolean_array[3] = True
+            if(self.absatz < self.crash_absatz_threshold):
                 i += 1
+                boolean_array[4] = True
             print(f"Jahr {2025 + year}: Nachfrage={self.nachfrage:.2f}, Produktion={self.produktion:.2f}, Arbeiter={self.arbeiter:.2f}, Zollsatz={self.zollsatz * 100:.2f}%, Einkommen={self.einkommen:.2f}, Inflationsrate={self.inflationsrate:.2f}%, Produktpreis Index={self.produktpreis_index:.2f}, Absatz={self.absatz:.2f}")
             print(f"Vergleich: Nachfrage: {self.nachfrage / self.initialeNachfrage * 100:.2f}%, Produktion: {self.produktion / self.initialeProduktion * 100:.2f}%, Beschäftigung: {self.arbeiter / self.initialeArbeiter * 100:.2f}%, Einkommen: {self.einkommen / self.initialesEinkommen * 100:.2f}%, Inflationsrate: {self.inflationsrate:.2f}%")
-            if i >= 2:  # Wenn mindestens 2 der 6 Kriterien erfüllt sind, wird ein Crash angenommen
+            if i >= 2:  # Wenn mindestens 2 der 5 Kriterien erfüllt sind, wird ein Crash angenommen
                 if crash_jahr is None:
-                    crash_jahr = year
-            history.append(( self.nachfrage, self.produktion, self.arbeiter, self.zollsatz, self.einkommen, self.inflationsrate, self.produktpreis_index, self.absatz))
+                    crash_jahr = year + 1
+            history.append(( self.nachfrage, self.produktion, self.arbeiter, self.zollsatz, self.einkommen, self.inflationsrate, self.produktpreis_index, self.absatz, boolean_array))
         return history, crash_jahr
     def plot_results(self, history):
         startjahr = 2025
         years = list(range(startjahr, startjahr + len(history)))
-        demand, production, employment, zollsatz, einkommen, inflationsrate, produktpreis_index, absatz = zip(*history)
+        demand, production, employment, zollsatz, einkommen, inflationsrate, produktpreis_index, absatz, boolean_array = zip(*history)
 
         plt.figure(figsize=(12, 16))
         plt.subplot(2, 2, 1)
         plt.plot(years, absatz, label='Absatz')
         plt.title('Absatz über Zeitraum')
+        if crash_jahr is not None:
+            plt.axvline(x=startjahr + crash_jahr, color='black', linestyle='--', alpha=0.7, label='Crash-Jahr')
+        if boolean_array[4]:
+            plt.axhline(y=self.crash_absatz_threshold, color='red', linestyle='--', alpha=0.5, label='Absatz Schwelle (70% des Startwertes)')
         plt.xlabel('Jahre')
         plt.ylabel('Absatz (Basis 100)')
+        plt.legend()
         plt.grid()
 
         plt.subplot(2, 2, 2)
         plt.plot(years, demand, label='Nachfrage', color='orange')
         plt.title('Nachfrage über Zeitraum')
+        if crash_jahr is not None:
+            plt.axvline(x=startjahr + crash_jahr, color='black', linestyle='--', alpha=0.7, label='Crash-Jahr')
+        if boolean_array[0]:
+            plt.axhline(y=self.crash_nachfrage_threshold, color='red', linestyle='--', alpha=0.5, label='Nachfrage Schwelle (70% des Startwertes)')
         plt.xlabel('Jahre')
         plt.ylabel('Nachfrage (Basis 100)')
         plt.grid()
@@ -134,6 +167,10 @@ class Finanzkrise:
         plt.subplot(2, 2, 3)
         plt.plot(years, production, label='Produktion', color='green')
         plt.title('Produktion über Zeitraum')
+        if crash_jahr is not None:
+            plt.axvline(x=startjahr + crash_jahr, color='black', linestyle='--', alpha=0.7, label='Crash-Jahr')
+        if boolean_array[1]:
+            plt.axhline(y=self.crash_produktions_threshold, color='red', linestyle='--', alpha=0.5, label='Produktion Schwelle (60% des Startwertes)')
         plt.xlabel('Jahre')
         plt.ylabel('Produktion (Basis 100)')
         plt.grid()
@@ -141,6 +178,10 @@ class Finanzkrise:
         plt.subplot(2, 2, 4)
         plt.plot(years, employment, label='Beschäftigung', color='red')
         plt.title('Beschäftigung über Zeitraum')
+        if crash_jahr is not None:
+            plt.axvline(x=startjahr + crash_jahr, color='black', linestyle='--', alpha=0.7, label='Crash-Jahr')
+        if boolean_array[2]:
+            plt.axhline(y=self.crash_beschaeftigung_threshold, color='red', linestyle='--', alpha=0.5, label='Beschäftigung Schwelle (80% des Startwertes)')
         plt.xlabel('Jahre')
         plt.ylabel('Änderung Beschäftigung')
         plt.grid()
@@ -154,24 +195,37 @@ class Finanzkrise:
         plt.subplot(2, 2, 1)
         plt.plot(years, zollsatz, label='Zoll Rate', color='purple')
         plt.title('Zollrate über Zeitraum')
+        if crash_jahr is not None:
+            plt.axvline(x=startjahr + crash_jahr, color='black', linestyle='--', alpha=0.7, label='Crash-Jahr')
+
         plt.xlabel('Jahre')
         plt.ylabel('Zollrate (%)')
         plt.grid()
         plt.subplot(2, 2, 2)
         plt.plot(years, produktpreis_index, label='Produkt Preis Index', color='brown')
         plt.title('Produkt Preis Index über Zeitraum')
+        if crash_jahr is not None:
+            plt.axvline(x=startjahr + crash_jahr, color='black', linestyle='--', alpha=0.7, label='Crash-Jahr')
+
         plt.xlabel('Jahre')
         plt.ylabel('Produkt Preis Index(Basis 100)')
         plt.grid()
         plt.subplot(2, 2, 3)
         plt.plot(years, einkommen, label='Einkommen', color='cyan')
         plt.title('Einkommen über Zeitraum')
+        if crash_jahr is not None:
+            plt.axvline(x=startjahr + crash_jahr, color='black', linestyle='--', alpha=0.7, label='Crash-Jahr')
+        if boolean_array[3]:
+            plt.axhline(y=self.crash_einkommen_threshold, color='red', linestyle='--', alpha=0.5, label='Einkommen Schwelle (75% des Startwertes)')
         plt.xlabel('Jahre')
         plt.ylabel('Einkommen')
         plt.grid()
         plt.subplot(2, 2, 4)
         plt.plot(years, inflationsrate, label='Inflationsrate', color='magenta')
         plt.title('Inflationsrate über Zeitraum kumuliert')
+        if crash_jahr is not None:
+            plt.axvline(x=startjahr + crash_jahr, color='black', linestyle='--', alpha=0.7, label='Crash-Jahr')
+        
         plt.xlabel('Jahre')
         plt.ylabel('Inflationsrate(%)')
         plt.grid()
