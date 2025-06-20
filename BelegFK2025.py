@@ -22,61 +22,65 @@ import random
 # durchschnittlicher Haushalt verliert $3800
 # Verlust von 142000 Arbeitsplätzen
 # Konsumentenpreise steigen um 2,3% durch Zölle alleine
+# 15-16% des GDP der USA entfallen auf Auslandsimporte
 # Inflationsrate ist bei 2,4%
 # Arbeitslosigkeit ist bei 4%, bis Q4 2025 wird sie auf 4,3% steigen
 # Einkommen ist seit Anfang 2025 um 2,5% gestiegen
 # Nachfrage und Absatz sind jeweils um 0,9% gefallen
-# Produktion ist um 0,4% gefallen seit 2024
+# Produktion ist um 0,4% gefallen 
+# Durchschnittseinkommen eines Haushalts sind 77540 USD
 
 
 
 class Finanzkrise:
     def __init__(self):
         #Parameter
-        self.zollsatz = 0.225  # initiale Tariff Rate -> 25%
+        self.zollsatz = 0.225  # initiale Tariff Rate -> 22,5%
         self.zollsatz_steigung = 0.05  # Tariffs steigen um 5% pro Jahr
         self.zollsatz_max = 0.50  # maximale Tariff Rate -> 50%
-        self.einwohneranzahl = 330000000  # USA Einwohneranzahl
-        self.initialesEinkommen = 50000  # Durchschnittseinkommen USA in USD
+        self.initialesEinkommen = 77540  # Durchschnittseinkommen USA in USD eines Haushalts
         self.einkommen = self.initialesEinkommen
         self.inflationsrate = 0.024  # initiale Inflationsrate -> 2,4%
-        self.produktpreis_index = 100  # initialer Produktpreisindex -> 100
-        self.initialeNachfrage = 1000  # initiale Nachfrage nach Waren
+        self.initialerProduktPreisIndex = 100  # initialer Produktpreisindex -> 100
+        self.produktpreis_index = self.initialerProduktPreisIndex + self.zollsatz  # Produktpreisindex (im ersten Jahr bereits um den Zollsatz erhöht)
+        self.initialeNachfrage = 100  # initiale Nachfrage nach Waren
         self.nachfrageThreshold = 0.01  # Mindestnachfrage, um einen totalen Marktkollaps zu vermeiden (1% der initialen Nachfrage)
         self.nachfrage = self.initialeNachfrage
-        self.initialeProduktion = 1000  # initiale Produktion von Waren
+        self.initialeProduktion = 100  # initiale Produktion von Waren
         self.produktion = self.initialeProduktion
         self.initialeArbeiter = 150000000  # initiale Arbeiteranzahl in den USA
         self.initialerAbsatz = 100
         self.absatz = self.initialerAbsatz #Absatz mit initialwert 100
-        
+        self.importanteil = 0.155  # Anteil der Importe am BIP der USA (15,5%)
         self.arbeiter = self.initialeArbeiter
         
         #Koeffizienten
-        self.einkommensPreisSensitivitaet = 0.005  # Sensitivität von Einkommen gegenüber Preisänderungen des allgemeinen Produktpreisindex
-        self.einkommensBeschaeftigungsSensitivitaet = 0.001  # Sensitivität von Einkommen gegenüber Beschäftigungsänderungen
+        self.einkommensPreisSensitivitaet = 0.18  # Sensitivität von Einkommen gegenüber Preisänderungen des allgemeinen Produktpreisindex
+        self.einkommensBeschaeftigungsSensitivitaet = 0.018  # Sensitivität von Einkommen gegenüber Beschäftigungsänderungen
         
-        self.produktionsPreisSensitivitaet = 0.01  # sensitivity of production to price changes
-        self.produktionsEinkommensSensitivitaet = 0.005  # sensitivity of production to income changes
-        self.produktionsNachfrageSensitivitaet = 0.05  # sensitivity of production to demand changes
-        self.arbeiterProduktionsSensitivitaet = 0.005  # sensitivity of employment to production changes
-        self.absatzPreisSensitivitaet = 0.01  # sensitivity of sales to price changes
+        self.nachfragePreisSensitivitaet = 0.007  # sensitivity of production to price changes
+        self.nachfrageEinkommensSensitivitaet = 0.001  # sensitivity of production to income changes
+        self.produktionsNachfrageSensitivitaet = 0.65  # sensitivity of production to demand changes
+        self.arbeiterProduktionsSensitivitaet = 0.17  # sensitivity of employment to production changes
+        self.absatzPreisSensitivitaet = 0.032  # sensitivity of sales to price changes
 
 
 
     def update(self):
         # Simulate the effects of the crisis
         self.zollsatz = min(self.zollsatz + self.zollsatz_steigung, self.zollsatz_max) # Tariffs werden jährlich erhöht, es gibt allerdings eine Obergrenze von 50%
-        import_anteil = 0.5 # 50% 
-        price_increase_from_tariffs = self.zollsatz * (1.0 / self.produktpreis_index) # Zölle erhöhen die Preise der importierten Waren, was sich auf den Produktpreisindex auswirkt
+        if self.zollsatz < self.zollsatz_max:  # Wenn der Zollsatz unter dem Maximum liegt, wird der Produktpreisindex erhöht
+            price_increase_from_tariffs = self.zollsatz_steigung * (100 / self.produktpreis_index) # Zölle erhöhen die Preise der importierten Waren, was sich auf den Produktpreisindex auswirkt
+        else:
+            price_increase_from_tariffs = 0
         price_increase_from_inflation = self.inflationsrate 
-        self.produktpreis_index *= (1 + price_increase_from_tariffs + price_increase_from_inflation) # Produktpreise steigen durch Zölle und Inflation
+        self.produktpreis_index *= (1 + (self.importanteil * price_increase_from_tariffs) + price_increase_from_inflation) # Produktpreise steigen durch Zölle und Inflation
         self.einkommen *= (1 - self.einkommensPreisSensitivitaet * (self.produktpreis_index / 100 - 1) - self.einkommensBeschaeftigungsSensitivitaet * (1 - self.arbeiter / self.initialeArbeiter)) # Einkommen sinkt durch steigende Preise und sinkende Beschäftigung
-        self.nachfrage *= max(self.nachfrageThreshold, 1.0 - (self.produktionsPreisSensitivitaet * (self.produktpreis_index / 100)) - (self.produktionsEinkommensSensitivitaet * (1 - self.einkommen / self.initialesEinkommen))) # self.nachfrage kann nicht unter 1% der initialen Nachfrage fallen, um eine totale Marktkollaps zu vermeiden
+        self.nachfrage *= max(self.nachfrageThreshold, 1.0 - (self.nachfragePreisSensitivitaet * (self.produktpreis_index / 100)) - (self.nachfrageEinkommensSensitivitaet * (1 - self.einkommen / self.initialesEinkommen))) # self.nachfrage kann nicht unter 1% der initialen Nachfrage fallen, um eine totale Marktkollaps zu vermeiden
         self.produktion *= (1 - self.produktionsNachfrageSensitivitaet * (1 - self.nachfrage / self.initialeNachfrage)) # wenn die Nachfrage sinkt, sinkt auch die Produktion
-        self.arbeiter *= (1 - self.arbeiterProduktionsSensitivitaet * (1 - self.produktion / self.initialeProduktion)) # wenn die Produktion sinkt, sinkt auch die Nachfrage nach Arbeitskräften
+        self.arbeiter = round(self.arbeiter * (1 - self.arbeiterProduktionsSensitivitaet * (1 - self.produktion / self.initialeProduktion))) # wenn die Produktion sinkt, sinkt auch die Nachfrage nach Arbeitskräften
         self.inflationsrate += 1
-        self.inflationsrate *= random.uniform(1.01, 1.06)  # Inflation liegt zufällig zwischen 1% und 6%
+        self.inflationsrate = random.uniform(1.01, 1.06)  # Inflation liegt zufällig zwischen 1% und 6%
         self.absatz *= (1 - self.absatzPreisSensitivitaet * (self.produktpreis_index / 100 - 1))  # Absatz sinkt durch steigende Preise
         self.inflationsrate -= 1
         
@@ -86,11 +90,10 @@ class Finanzkrise:
         history = []
         crash_jahr = None  # Wann tritt der Crash ein?
         i = 0
+        history.append(( self.nachfrage, self.produktion, self.arbeiter, self.zollsatz, self.einkommen, self.inflationsrate, self.produktpreis_index, self.absatz))
+
         for year in range(years):
             self.update()
-            if (self.nachfrage < 0.7 * self.initialeNachfrage and self.produktion < 0.7 * self.initialeProduktion and self.einkommen < 0.75 * self.initialesEinkommen and self.arbeiter < 0.85 * self.initialeArbeiter):
-                if crash_jahr is None:
-                    crash_jahr = year
             if (self.nachfrage < 0.7 * self.initialeNachfrage):
                 i += 1
             if (self.produktion < 0.7 * self.initialeProduktion):
@@ -118,28 +121,28 @@ class Finanzkrise:
         plt.plot(years, absatz, label='Absatz')
         plt.title('Absatz über Zeitraum')
         plt.xlabel('Jahre')
-        plt.ylabel('Absatz')
+        plt.ylabel('Absatz (Basis 100)')
         plt.grid()
 
         plt.subplot(2, 2, 2)
         plt.plot(years, demand, label='Nachfrage', color='orange')
         plt.title('Nachfrage über Zeitraum')
         plt.xlabel('Jahre')
-        plt.ylabel('Nachfrage')
+        plt.ylabel('Nachfrage (Basis 100)')
         plt.grid()
 
         plt.subplot(2, 2, 3)
         plt.plot(years, production, label='Produktion', color='green')
         plt.title('Produktion über Zeitraum')
         plt.xlabel('Jahre')
-        plt.ylabel('Produktion (Basis 1000)')
+        plt.ylabel('Produktion (Basis 100)')
         plt.grid()
 
         plt.subplot(2, 2, 4)
         plt.plot(years, employment, label='Beschäftigung', color='red')
         plt.title('Beschäftigung über Zeitraum')
         plt.xlabel('Jahre')
-        plt.ylabel('Beschäftigung')
+        plt.ylabel('Änderung Beschäftigung')
         plt.grid()
         plt.suptitle('Wirtschaftskrise')
         plt.legend()
