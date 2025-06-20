@@ -64,8 +64,8 @@ class Finanzkrise:
         self.absatzPreisSensitivitaet = 0.032  # sensitivity of sales to price changes
 
         # Crash Thresholds
-        self.crash_nachfrage_threshold = 0.9 * self.initialeNachfrage  # Nachfrage unter 70% des Startwertes
-        self.crash_produktions_threshold = 0.9 * self.initialeProduktion  # Produktion unter 60% des Startwertes
+        self.crash_nachfrage_threshold = 0.7 * self.initialeNachfrage  # Nachfrage unter 70% des Startwertes
+        self.crash_produktions_threshold = 0.6 * self.initialeProduktion  # Produktion unter 60% des Startwertes
         self.crash_beschaeftigung_threshold = 0.8 * self.initialeArbeiter  # Beschäftigung unter 80% des Startwertes
         self.crash_einkommen_threshold = 0.75 * self.initialesEinkommen  # Einkommen unter 75% des Startwertes
         self.crash_absatz_threshold = 0.7 * self.initialerAbsatz  # Absatz unter 70% des Startwertes 
@@ -73,7 +73,7 @@ class Finanzkrise:
 
 
     def update(self,year):
-        if year > 1:
+        if year > 0:
             self.einkommensPreisSensitivitaet = 0.05  
             self.einkommensBeschaeftigungsSensitivitaet = 0.008  
 
