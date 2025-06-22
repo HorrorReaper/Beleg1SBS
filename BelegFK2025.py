@@ -33,7 +33,7 @@ import random
 
 class Finanzkrise:
     def __init__(self):
-        #Parameter
+        #Parameterinitialisierung
         self.zollsatz = 0.225  # initiale Tariff Rate -> 22,5%
         self.zollsatz_steigung = 0.05  # Tariffs steigen um 5% pro Jahr
         self.zollsatz_max = 0.50  # maximale Tariff Rate -> 50%
@@ -85,22 +85,19 @@ class Finanzkrise:
 
             self.absatzPreisSensitivitaet = 0.02  
 
-        # Simulate the effects of the crisis
+        # Kriseneffekt simulieren
         self.zollsatz = min(self.zollsatz + self.zollsatz_steigung, self.zollsatz_max) # Tariffs werden jährlich erhöht, es gibt allerdings eine Obergrenze von 50%
         if self.zollsatz < self.zollsatz_max:  # Wenn der Zollsatz unter dem Maximum liegt, wird der Produktpreisindex erhöht
-            price_increase_from_tariffs = self.zollsatz_steigung * (100 / self.produktpreis_index) # Zölle erhöhen die Preise der importierten Waren, was sich auf den Produktpreisindex auswirkt
+            preissteigerung_durch_zoelle = self.zollsatz_steigung * (100 / self.produktpreis_index) # Zölle erhöhen die Preise der importierten Waren, was sich auf den Produktpreisindex auswirkt
         else:
-            price_increase_from_tariffs = 0
-        price_increase_from_inflation = self.inflationsrate 
-        self.produktpreis_index *= (1 + (self.importanteil * price_increase_from_tariffs) + price_increase_from_inflation) # Produktpreise steigen durch Zölle und Inflation
-        self.einkommen *= (1 - self.einkommensPreisSensitivitaet * (self.produktpreis_index / 100 - 1) - self.einkommensBeschaeftigungsSensitivitaet * (1 - self.arbeiter / self.initialeArbeiter)) # Einkommen sinkt durch steigende Preise und sinkende Beschäftigung
+            preissteigerung_durch_zoelle = 0
+        self.produktpreis_index *= (1 + (self.importanteil * preissteigerung_durch_zoelle) + self.inflationsrate) # Produktpreise steigen durch Zölle und Inflation
+        self.einkommen *= (1 - self.einkommensPreisSensitivitaet * (self.produktpreis_index / self.initialerProduktPreisIndex - 1) - self.einkommensBeschaeftigungsSensitivitaet * (1 - self.arbeiter / self.initialeArbeiter)) # Einkommen sinkt durch steigende Preise und sinkende Beschäftigung
         self.nachfrage *= max(self.nachfrageThreshold, 1.0 - (self.nachfragePreisSensitivitaet * (self.produktpreis_index / 100)) - (self.nachfrageEinkommensSensitivitaet * (1 - self.einkommen / self.initialesEinkommen))) # self.nachfrage kann nicht unter 1% der initialen Nachfrage fallen, um eine totale Marktkollaps zu vermeiden
         self.produktion *= (1 - self.produktionsNachfrageSensitivitaet * (1 - self.nachfrage / self.initialeNachfrage)) # wenn die Nachfrage sinkt, sinkt auch die Produktion
         self.arbeiter = round(self.arbeiter * (1 - self.arbeiterProduktionsSensitivitaet * (1 - self.produktion / self.initialeProduktion))) # wenn die Produktion sinkt, sinkt auch die Nachfrage nach Arbeitskräften
-        self.inflationsrate += 1
-        self.inflationsrate = random.uniform(1.01, 1.06)  # Inflation liegt zufällig zwischen 1% und 6%
+        self.inflationsrate = random.uniform(0.01, 0.06)  # Inflation liegt zufällig zwischen 1% und 6%
         self.absatz *= (1 - self.absatzPreisSensitivitaet * (self.produktpreis_index / 100 - 1))  # Absatz sinkt durch steigende Preise
-        self.inflationsrate -= 1
         
 
     def simulate(self, years=10):
@@ -162,6 +159,7 @@ class Finanzkrise:
             plt.axhline(y=self.crash_nachfrage_threshold, color='red', linestyle='--', alpha=0.5, label='Nachfrage Schwelle (70% des Startwertes)')
         plt.xlabel('Jahre')
         plt.ylabel('Nachfrage (Basis 100)')
+        plt.legend()
         plt.grid()
 
         plt.subplot(2, 2, 3)
@@ -173,6 +171,7 @@ class Finanzkrise:
             plt.axhline(y=self.crash_produktions_threshold, color='red', linestyle='--', alpha=0.5, label='Produktion Schwelle (60% des Startwertes)')
         plt.xlabel('Jahre')
         plt.ylabel('Produktion (Basis 100)')
+        plt.legend()
         plt.grid()
 
         plt.subplot(2, 2, 4)
@@ -200,6 +199,7 @@ class Finanzkrise:
 
         plt.xlabel('Jahre')
         plt.ylabel('Zollrate (%)')
+        plt.legend()
         plt.grid()
         plt.subplot(2, 2, 2)
         plt.plot(years, produktpreis_index, label='Produkt Preis Index', color='brown')
@@ -209,6 +209,7 @@ class Finanzkrise:
 
         plt.xlabel('Jahre')
         plt.ylabel('Produkt Preis Index(Basis 100)')
+        plt.legend()
         plt.grid()
         plt.subplot(2, 2, 3)
         plt.plot(years, einkommen, label='Einkommen', color='cyan')
@@ -219,6 +220,7 @@ class Finanzkrise:
             plt.axhline(y=self.crash_einkommen_threshold, color='red', linestyle='--', alpha=0.5, label='Einkommen Schwelle (75% des Startwertes)')
         plt.xlabel('Jahre')
         plt.ylabel('Einkommen')
+        plt.legend()
         plt.grid()
         plt.subplot(2, 2, 4)
         plt.plot(years, inflationsrate, label='Inflationsrate', color='magenta')
