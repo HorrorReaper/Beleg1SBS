@@ -86,9 +86,33 @@ def generiereFitnessstudiobesucher(env):
         gesamtanzahl_besucher += 1
         print("Hallo",gesamtanzahl_besucher)
 #env.process( generiereFitnessstudiobesucher(env, 10, 5))
-env.process(generiereFitnessstudiobesucher(env))
-trainer = simpy.Resource(env, capacity = 5) # 5 trainer sind verfügbar
-env.run(until=840)
-print("Gesamtanzahl Besucher:", gesamtanzahl_besucher)
+#env.process(generiereFitnessstudiobesucher(env))
+#trainer = simpy.Resource(env, capacity = 5) # 5 trainer sind verfügbar
+#env.run(until=840)
+#print("Gesamtanzahl Besucher:", gesamtanzahl_besucher)
 # 1. Vorlesung 1. Juli(Dienstag) Online 9.00-10.30
 # Abnahme 8. Juli 8.30-9.45
+def run_scenario(num_trainers):
+    wait_times.clear()
+    service_times.clear()
+    env = simpy.Environment()
+    trainer = simpy.Resource(env, capacity=num_trainers)
+    # (Prozesse und Parameter wie gehabt)...
+    env.run(until=840)
+    return {
+        'trainers': num_trainers,
+        'avg_wait': np.mean(wait_times),
+        'max_wait': np.max(wait_times),
+        'utilization': sum(service_times) / (num_trainers * 840*14)
+    }
+
+results = [run_scenario(n) for n in range(1,11)]
+import pandas as pd
+df = pd.DataFrame(results)
+print(df)
+
+plt.plot(df['trainers'], df['avg_wait'], marker='o')
+plt.xlabel('Anzahl Trainer')
+plt.ylabel('Durchschnittliche Wartezeit (Min)')
+plt.grid(True)
+plt.show()
