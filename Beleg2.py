@@ -13,6 +13,8 @@ trainings_dauer_min = 20
 trainings_dauer_max = 180
 trainings_dauer_durchschnitt = 90
 trainings_dauer_sigma = 20
+wait_times = [] # Liste für Wartezeiten der Trainer
+service_times = [] # Liste für Servicezeiten der Trainer
 
 verlassen_dauer_durchschnitt = 8
 verlassen_dauer_sigma = 2.5
@@ -37,13 +39,22 @@ def Fitnessstudiobesucher(env,besucherid):
         yield env.timeout(beginn_dauer)
         needs_help = random.uniform(0, 0.8)
         if needs_help > 0.5:
-            print('Besucher ', besucherid, ' braucht Hilfe')
-            trainerreq = trainer.request()
-            yield trainerreq
+            # wenn der Kunde Hilfe benötigt:
+            t_request = env.now
+            with trainer.request() as req:
+                yield req
+                wait = env.now - t_request
+                wait_times.append(wait)
+                t_start = env.now
+                yield env.timeout(trainerzeit)
+                service_times.append(env.now - t_start)
+ #           print('Besucher ', besucherid, ' braucht Hilfe')
+ #           trainerreq = trainer.request()
+ #           yield trainerreq
             print("Trainer", trainer.count, " kümmert sich um Besucher ", besucherid, " um ", env.now, ". Es sind noch ", trainer.capacity, " Trainer verfügbar")
             trainerzeit = random.gauss(trainerzeit_dauer_durchschnitt, trainerzeit_dauer_sigma)
-            yield env.timeout(trainerzeit)
-            trainer.release(trainerreq)
+ #           yield env.timeout(trainerzeit)
+ #           trainer.release(trainerreq)
         trainings_dauer = random.gauss(trainings_dauer_durchschnitt, trainings_dauer_sigma)
         while trainings_dauer < 0:
             trainings_dauer = random.gauss(trainings_dauer_durchschnitt, trainings_dauer_sigma)
