@@ -25,21 +25,24 @@ besucher_ankunftszeit_min = 0
 besucher_ankunftszeit_max = 10
 
 simulationsdauer = 840  # 1 Tag in Minuten
+# gerät wartezeiten
+geraet_nutzung_dauer_durchschnitt = 15  # Minuten
+geraet_nutzung_dauer_sigma = 5
 
 # Globale Listen zur Erfassung von Metriken
 wait_times = []
 service_times = []
 def intervalAnkunftszeit(env_now):
-    if 480 <= env_now <= 600:
+    if 480 <= env_now <= 600: #16-18 Uhr kommen die meisten Besucher
         return random.uniform(1, 4)
     elif 660 <= env_now <= 720:
         return random.uniform(1, 5)
     else:
         return random.uniform(4, 10)
-def Fitnessstudiobesucher(env, besucherid, trainer, typ):
+def Fitnessstudiobesucher(env, besucherid, trainer, typ, geraet):
     global wait_times, service_times
     beginn_dauer = max(0, random.gauss(beginn_dauer_durchschnitt, beginn_dauer_sigma))
-    print('Besucher', besucherid, ' betritt den Parkplatz %d' % env.now, 'Minuten nach Öffnung')
+    print(int(env.now), 'Besucher', besucherid, ' betritt den Parkplatz %d' % int(env.now), 'Minuten nach Öffnung')
     yield env.timeout(beginn_dauer)
     if( typ == 'Beginner'):
         needs_help = random.uniform(0.3, 1)
@@ -49,32 +52,48 @@ def Fitnessstudiobesucher(env, besucherid, trainer, typ):
         needs_help = random.uniform(0, 0.55)
     if needs_help > 0.5:
         print('Besucher ', besucherid, ' braucht Hilfe')
+        minute = int(env.now)
+        hilfe_pro_minute[minute] = hilfe_pro_minute.get(minute, 0) + 1
         t_request = env.now
         with trainer.request() as req:
             yield req
             wait = env.now - t_request
             wait_times.append(wait)
-            print("Trainer", trainer.count, " kümmert sich um Besucher ", besucherid, " um ", env.now, ". Es sind noch ", trainer.capacity, " Trainer verfügbar")
             trainerzeit = max(0, random.gauss(trainerzeit_dauer_durchschnitt, trainerzeit_dauer_sigma))
+            verfuegbar = trainer.capacity - trainer.count
+            print(int(env.now), "Trainer", trainer.count, " kümmert sich um Besucher ", besucherid, " um ", int(env.now), ". Es sind noch ", verfuegbar, " Trainer verfügbar. Es werden ", int(trainerzeit), " Minuten gewartet")
+            
             t_start = env.now
             yield env.timeout(trainerzeit)
             service_times.append(env.now - t_start)
+            verfuegbar = trainer.capacity - trainer.count
+            print(int(env.now), "Trainer", trainer.count, " hat die Hilfe für Besucher ", besucherid, " beendet. Es sind jetzt wieder ", verfuegbar, " Trainer verfügbar")
+    if random.random() < 0.4:
+        with geraet.request() as req:
+            yield req
+            print(f"{int(env.now)} Besucher {besucherid} wartet auf Gerät bei Minute {env.now:.1f}")
+            dauer = max(0, random.gauss(geraet_nutzung_dauer_durchschnitt, geraet_nutzung_dauer_sigma))
+            yield env.timeout(dauer)
+            print(f"{int(env.now)} Besucher {besucherid} verlässt das Gerät bei Minute {env.now:.1f}")
+
 
     trainings_dauer = max(0, random.gauss(trainings_dauer_durchschnitt, trainings_dauer_sigma))
-    print('Besucher', besucherid, ' betritt das Fitnessstudio, beginnt mit dem Training %d' % env.now, 'Minuten nach Öffnung')
+    for t in range(int(env.now), int(env.now + trainings_dauer)):
+        besucher_pro_minute[t] = besucher_pro_minute.get(t, 0) + 1
+    print('Besucher', besucherid, ' betritt das Fitnessstudio, beginnt mit dem Training %d' % int(env.now), 'Minuten nach Öffnung')
     yield env.timeout(trainings_dauer)
 
     verlassen_duration = max(0, random.gauss(verlassen_dauer_durchschnitt, verlassen_dauer_sigma))
-    print('Besucher ', besucherid,' verlässt das Fitnessstudio %d' % env.now)
+    print(int(env.now), 'Besucher ', besucherid,' verlässt das Fitnessstudio %d' % int(env.now))
     yield env.timeout(verlassen_duration)
 
-def generiereFitnessstudiobesucher(env, trainer):
+def generiereFitnessstudiobesucher(env, trainer, geraet):
     besucherid = 0
     while True:
         besucherid += 1
-        print("Besucher kommt an ", besucherid, " zur Zeit: ", env.now)
+        print(int(env.now), "Besucher kommt an ", besucherid, " zur Zeit: ", int(env.now))
         typ = random.choice(['Beginner', 'Fortgeschritten', 'Profi'])
-        env.process(Fitnessstudiobesucher(env, besucherid, trainer, typ))
+        env.process(Fitnessstudiobesucher(env, besucherid, trainer, typ, geraet))
         '''intervalAnkunftszeit = np.clip(
             np.random.normal(besucher_ankunftszeit_durchschnitt, besucher_ankunftszeit_sigma),
             besucher_ankunftszeit_min,
@@ -83,13 +102,17 @@ def generiereFitnessstudiobesucher(env, trainer):
         yield env.timeout(intervalAnkunftszeit(env.now))
 
 def run_scenario(num_trainers):
-    global wait_times, service_times
+    global wait_times, service_times, besucher_pro_minute, hilfe_pro_minute
     wait_times = []
     service_times = []
+    besucher_pro_minute = {}
+    hilfe_pro_minute = {}
 
     env = simpy.Environment()
     trainer = simpy.Resource(env, capacity=num_trainers)
-    env.process(generiereFitnessstudiobesucher(env, trainer))
+    geraet = simpy.Resource(env, capacity=3)  # z. B. 3 Beinpressen
+
+    env.process(generiereFitnessstudiobesucher(env, trainer, geraet))
     env.run(until=simulationsdauer)
 
     avg_wait = np.mean(wait_times) if wait_times else 0.0
@@ -109,12 +132,41 @@ df = pd.DataFrame(results)
 print(df)
 
 # Plotten
-plt.figure(figsize=(10, 5))
-plt.plot(df['trainers'], df['avg_wait'], marker='o', label='Durchschnittliche Wartezeit')
+plt.figure(figsize=(12, 16))
+plt.subplot(4, 2, 1)
 plt.plot(df['trainers'], df['utilization'], marker='s', label='Auslastung der Trainer')
 plt.xlabel('Anzahl Trainer')
 plt.ylabel('Werte')
-plt.title('Wartezeit und Auslastung in Abhängigkeit der Traineranzahl')
+plt.title('Auslastung in Abhängigkeit der Traineranzahl')
 plt.legend()
+plt.subplot(4, 2, 2)
+plt.plot(df['trainers'], df['avg_wait'], marker='x', label='Durchschnittliche Wartezeit')
+plt.xlabel('Anzahl Trainer')
+plt.ylabel('Durchschnittliche Wartezeit (Minuten)')
+plt.title('Durchschnittliche Wartezeit in Abhängigkeit der Traineranzahl')
+plt.legend()
+
+plt.suptitle('Simulationsergebnisse für Fitnessstudio-Besucher', fontsize=16)
+plt.subplot(4, 2, 3)
+plt.plot(df['trainers'], df['max_wait'], marker='x', label='Maximale Wartezeit')
+plt.xlabel('Anzahl Trainer')
+plt.ylabel('Maximale Wartezeit (Minuten)')
+plt.title('Maximale Wartezeit in Abhängigkeit der Traineranzahl')
+times = sorted(besucher_pro_minute.keys())
+hilfe = sorted(hilfe_pro_minute.keys())
+hilfe_anzahl = [hilfe_pro_minute[k] for k in hilfe]
+anzahl = [besucher_pro_minute[t] for t in times]
+auslastung_df = pd.DataFrame({'Minute': times, 'Anzahl Besucher': anzahl})
+hilfe_df = pd.DataFrame({'Minute': hilfe, 'Anzahl Hilfe': hilfe_anzahl})
+plt.subplot(4, 2, 4)
+plt.plot(auslastung_df['Minute'], auslastung_df['Anzahl Besucher'], color='teal')
+plt.title("Auslastung des Fitnessstudios im Tagesverlauf")
+plt.xlabel("Minute seit Öffnung (8:00 Uhr)")
+plt.ylabel("Anzahl gleichzeitiger Besucher")
+plt.subplot(4, 2, 5)
+plt.plot(hilfe_df['Minute'], hilfe_df['Anzahl Hilfe'], color='teal')
+plt.title("Anzahl Hilfe im Tagesverlauf")
+plt.xlabel("Minute seit Öffnung (8:00 Uhr)")
+plt.ylabel("Anzahl gleichzeitiger benötigter Hilfen")
 plt.grid(True)
 plt.show()
