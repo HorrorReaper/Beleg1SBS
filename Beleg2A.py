@@ -44,6 +44,10 @@ def Fitnessstudiobesucher(env, besucherid, trainer, typ, geraet):
     beginn_dauer = max(0, random.gauss(beginn_dauer_durchschnitt, beginn_dauer_sigma))
     print(int(env.now), 'Besucher', besucherid, ' betritt den Parkplatz %d' % int(env.now), 'Minuten nach Öffnung')
     yield env.timeout(beginn_dauer)
+    if env.now >= simulationsdauer:
+        print(int(env.now), 'Besucher ', besucherid, ' verlässt das Fitnessstudio ', int(env.now), ' aufgrund von Schließung')
+        return  # Besucher muss gehen
+
     if( typ == 'Beginner'):
         needs_help = random.uniform(0.3, 1)
     elif( typ == 'Fortgeschritten'):
@@ -82,14 +86,23 @@ def Fitnessstudiobesucher(env, besucherid, trainer, typ, geraet):
         besucher_pro_minute[t] = besucher_pro_minute.get(t, 0) + 1
     print('Besucher', besucherid, ' betritt das Fitnessstudio, beginnt mit dem Training %d' % int(env.now), 'Minuten nach Öffnung')
     yield env.timeout(trainings_dauer)
+    if env.now >= simulationsdauer:
+        return  # Besucher muss gehen
+
 
     verlassen_duration = max(0, random.gauss(verlassen_dauer_durchschnitt, verlassen_dauer_sigma))
     print(int(env.now), 'Besucher ', besucherid,' verlässt das Fitnessstudio %d' % int(env.now))
     yield env.timeout(verlassen_duration)
+    if env.now >= simulationsdauer:
+        return  # Besucher muss gehen
+
 
 def generiereFitnessstudiobesucher(env, trainer, geraet):
     besucherid = 0
     while True:
+        if env.now > simulationsdauer - 20:
+            break  # keine neuen Besucher mehr ab 820
+
         besucherid += 1
         print(int(env.now), "Besucher kommt an ", besucherid, " zur Zeit: ", int(env.now))
         typ = random.choice(['Beginner', 'Fortgeschritten', 'Profi'])
