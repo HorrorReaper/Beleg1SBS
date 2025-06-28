@@ -21,8 +21,6 @@ trainerzeit_dauer_sigma = 2
 
 besucher_ankunftszeit_durchschnitt = 3
 besucher_ankunftszeit_sigma = 1.5
-besucher_ankunftszeit_min = 0
-besucher_ankunftszeit_max = 10
 
 simulationsdauer = 840  # 1 Tag in Minuten -> 8:00 Uhr bis 22:00 Uhr
 # gerät wartezeiten
@@ -53,11 +51,11 @@ def Fitnessstudiobesucher(env, besucherid, trainer, typ, geraet):
         return  # Besucher muss gehen
 
     if( typ == 'Beginner'):
-        needs_help = random.uniform(0.3, 1)
+        needs_help = random.uniform(0.3, 1) # Anfänger brauchen oft Hilfe -> 71% der Zeit
     elif( typ == 'Fortgeschritten'):
-        needs_help = random.uniform(0, 0.8)
+        needs_help = random.uniform(0, 0.8) # Fortgeschrittene brauchen manchmal Hilfe -> 37,5% der Zeit
     else:  # Profi
-        needs_help = random.uniform(0, 0.55)
+        needs_help = random.uniform(0, 0.55)# Profis brauchen selten Hilfe -> 10% der Zeit
     if needs_help > 0.5:
         print('Besucher ', besucherid, ' braucht Hilfe')
         minute = int(env.now)
@@ -133,7 +131,7 @@ def run_scenario(num_trainers):
 
     env = simpy.Environment()
     trainer = simpy.Resource(env, capacity=num_trainers)
-    geraet = simpy.Resource(env, capacity=3)  # z. B. 3 Beinpressen
+    geraet = simpy.Resource(env, capacity=15)  # z. B. 15 Geräte im Fitnessstudio
 
     env.process(generiereFitnessstudiobesucher(env, trainer, geraet))
     env.run(until=simulationsdauer)
