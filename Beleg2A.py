@@ -22,7 +22,7 @@ trainerzeit_dauer_sigma = 2
 besucher_ankunftszeit_durchschnitt = 3
 besucher_ankunftszeit_sigma = 1.5
 
-simulationsdauer = 840  # 1 Tag in Minuten -> 8:00 Uhr bis 22:00 Uhr
+simulationsdauer = 840  # 1 Tag in Minuten(14 Stunden) -> 8:00 Uhr bis 22:00 Uhr
 # gerät wartezeiten
 geraet_wartezeit = []
 geraet_nutzung_dauer_durchschnitt = 15  # Minuten
@@ -75,7 +75,7 @@ def Fitnessstudiobesucher(env, besucherid, trainer, typ, geraet):
             service_times.append(env.now - t_start)
             verfuegbar = trainer.capacity - trainer.count
             print(int(env.now), "Trainer", trainer.count, " hat die Hilfe für Besucher ", besucherid, " beendet. Es sind jetzt wieder ", verfuegbar, " Trainer verfügbar")
-    if random.random() < 0.4:
+    if random.random() < 0.9:
         t_request = env.now
         with geraet.request() as req:
             yield req
@@ -114,11 +114,6 @@ def generiereFitnessstudiobesucher(env, trainer, geraet):
         print(int(env.now), "Besucher kommt an ", besucherid, " zur Zeit: ", int(env.now))
         typ = random.choice(['Beginner', 'Fortgeschritten', 'Profi'])
         env.process(Fitnessstudiobesucher(env, besucherid, trainer, typ, geraet))
-        '''intervalAnkunftszeit = np.clip(
-            np.random.normal(besucher_ankunftszeit_durchschnitt, besucher_ankunftszeit_sigma),
-            besucher_ankunftszeit_min,
-            besucher_ankunftszeit_max
-        )'''
         yield env.timeout(intervalAnkunftszeit(env.now))
 
 def run_scenario(num_trainers):
@@ -126,6 +121,7 @@ def run_scenario(num_trainers):
     wait_times = []
     service_times = []
     besucher_pro_minute = {}
+    besucher_pro_minute_pro_durchlauf = {}
     hilfe_pro_minute = {}
     geraet_wartezeit = []
 
